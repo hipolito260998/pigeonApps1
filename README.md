@@ -1,50 +1,127 @@
-# Welcome to your Expo app 👋
+# 🐦 Pigeon Apps - Gestor Inteligente de Palomas
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Una aplicación React Native + Expo diseñada para gestionar un criadero de palomas. Tu papá podrá registrar, organizar y visualizar el árbol genealógico completo de sus palomas con todos los detalles.
 
-## Get started
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![React Native](https://img.shields.io/badge/React%20Native-0.81-61dafb)
+![Expo](https://img.shields.io/badge/Expo-54-000020)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6)
 
-1. Install dependencies
+## 🌟 Características Principales
 
-   ```bash
-   npm install
-   ```
+### ✅ Ya Implementado
 
-2. Start the app
+- **📋 Registro Completo de Palomas**
+  - Nombre, anillo (ID), raza, sexo, color
+  - Fecha de nacimiento
+  - Estado (activa, vendida, fallecida, retirada)
+  - Notas personalizadas
 
-   ```bash
-   npx expo start
-   ```
+- **🌳 Árbol Genealógico Visual**
+  - Ver padres, abuelos e hijos
+  - Navegación entre generaciones
+  - Vista organizada por niveles
 
-In the output, you'll find options to open the app in a
+- **💉 Gestión de Vacunas**
+  - Registro de vacunas aplicadas
+  - Fechas de vacunación
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **📊 Dashboard de Estadísticas**
+  - Total de palomas
+  - Contador de hembras y machos
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **🎨 Interfaz Moderna**
+  - Diseño responsive con NativeWind (Tailwind CSS)
+  - Navegación fluida con Expo Router
 
-## Get a fresh project
+## 🛠 Stack Técnico
 
-When you're ready, run:
+| Capa              | Tecnología                 |
+| ----------------- | -------------------------- |
+| **Frontend**      | React Native + Expo        |
+| **Lenguaje**      | TypeScript                 |
+| **Estilos**       | NativeWind (Tailwind CSS)  |
+| **Navegación**    | Expo Router v6             |
+| **Estado Global** | Zustand                    |
+| **Base de Datos** | Firebase Realtime Database |
+
+## 🚀 Inicio Rápido
+
+### Requisitos
+
+- Node.js 18+
+- npm
+- Cuenta Firebase gratis
+
+### Instalación
 
 ```bash
-npm run reset-project
+npm install
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Luego abre en:
 
-## Learn more
+- iOS: `npm run ios`
+- Android: `npm run android`
+- Web: `npm run web`
 
-To learn more about developing your project with Expo, look at the following resources:
+### Configuración Firebase
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. Ve a [firebase.google.com](https://console.firebase.google.com)
+2. Crea un proyecto
+3. Habilita Realtime Database
+4. Copia las credenciales a `.env.local` (copia `.env.example`)
 
-## Join the community
+## 📁 Estructura del Proyecto
 
-Join our community of developers creating universal apps.
+```
+app/(tabs)/palomas.tsx          # Panel principal de palomas
+app/paloma/[id].tsx             # Detalles + Árbol genealógico
+app/paloma/nueva.tsx            # Crear nueva paloma
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+components/
+  ├── PalomaCard.tsx            # Card individual
+  ├── PalomaLista.tsx           # Lista de palomas
+  ├── ArbolGenealogicoPaloma.tsx # Árbol genealógico
+  └── CrearPalomaForm.tsx       # Formulario
+
+store/palomaStore.ts            # Estado global (Zustand)
+services/palomaService.ts       # Firebase integration
+types/index.ts                  # TypeScript types
+```
+
+## 📚 Documentación
+
+- [QUICKSTART.md](./QUICKSTART.md) - Guía rápida de 5 minutos
+- [SETUP.md](./SETUP.md) - Configuración completa
+- [AUTH.md](./AUTH.md) - Implementar autenticación
+
+## 🧙 Usar el Store
+
+```typescript
+import { usePalomaStore } from "@/store/palomaStore";
+
+const { palomas, agregarPaloma, obtenerArbolGenealogico } = usePalomaStore();
+```
+
+## 💻 Comandos
+
+```bash
+npm start        # Inicia la app
+npm run ios      # iOS
+npm run android  # Android
+npm run web      # Web
+npm run lint     # ESLint
+```
+
+## 📖 Recursos
+
+- [Expo Docs](https://docs.expo.dev)
+- [React Native](https://reactnative.dev)
+- [NativeWind](https://www.nativewind.dev)
+- [Firebase](https://firebase.google.com)
+
+---
+
+**Desarrollado con ❤️ para el criadero de palomas** 🐦

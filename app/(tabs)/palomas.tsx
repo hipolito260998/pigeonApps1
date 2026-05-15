@@ -1,0 +1,57 @@
+import { PalomaLista } from "@/components/PalomaLista";
+import { usePalomaStore } from "@/store/palomaStore";
+import { router } from "expo-router";
+import React, { useEffect } from "react";
+import { SafeAreaView, Text, TouchableOpacity, View } from "react-native";
+
+export default function PalomasScreen() {
+  const { palomas } = usePalomaStore();
+
+  useEffect(() => {
+    // TODO: Cargar palomas desde Firebase aquí
+    // Por ahora solo es una demostración
+  }, []);
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="px-4 py-4 bg-white border-b border-gray-200">
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-2xl font-bold text-gray-800">
+            🐦 Mis Palomas
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/paloma/nueva")}
+            className="bg-primary px-4 py-2 rounded-lg"
+          >
+            <Text className="text-white font-semibold text-sm">+ Nueva</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats */}
+        <View className="flex-row gap-3">
+          <View className="flex-1 bg-blue-50 p-2 rounded-lg">
+            <Text className="text-xs text-blue-600">Total</Text>
+            <Text className="text-lg font-bold text-blue-700">
+              {palomas.length}
+            </Text>
+          </View>
+          <View className="flex-1 bg-pink-50 p-2 rounded-lg">
+            <Text className="text-xs text-pink-600">Hembras</Text>
+            <Text className="text-lg font-bold text-pink-700">
+              {palomas.filter((p) => p.sexo === "hembra").length}
+            </Text>
+          </View>
+          <View className="flex-1 bg-blue-100 p-2 rounded-lg">
+            <Text className="text-xs text-blue-600">Machos</Text>
+            <Text className="text-lg font-bold text-blue-700">
+              {palomas.filter((p) => p.sexo === "macho").length}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Lista de Palomas */}
+      <PalomaLista filtro="todas" />
+    </SafeAreaView>
+  );
+}
