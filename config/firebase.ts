@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, inMemoryPersistence } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 
 // TODO: Reemplaza estos valores con tus credenciales de Firebase
@@ -15,7 +15,9 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: inMemoryPersistence
+});
 export const database = getDatabase(app);
 
 console.log("🔥 Firebase initialized");

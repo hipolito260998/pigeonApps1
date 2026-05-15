@@ -1,11 +1,12 @@
 import {
-    DarkTheme,
-    DefaultTheme,
-    ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
+import "../global.css";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -38,6 +39,13 @@ export default function RootLayout() {
             title: "Nueva Paloma",
             headerShown: true,
             presentation: "card",
+          }}
+        />
+        <Stack.Screen
+          name="paloma/editar/[id]"
+          options={{
+            title: "Editar Paloma",
+            headerShown: true,
           }}
         />
       </Stack>

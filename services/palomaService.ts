@@ -1,15 +1,15 @@
-import {
-  ref,
-  set,
-  get,
-  remove,
-  push,
-  update,
-  onValue,
-  off,
-} from "firebase/database";
 import { database } from "@/config/firebase";
 import { Paloma } from "@/types";
+import {
+  get,
+  off,
+  onValue,
+  push,
+  ref,
+  remove,
+  set,
+  update,
+} from "firebase/database";
 
 const PALOMAS_REF = "palomas";
 
@@ -88,7 +88,7 @@ export const palomaService = {
   escucharPalomas(
     userId: string,
     callback: (palomas: Paloma[]) => void
-  ): (() => void) => {
+  ): (() => void) {
     const palomasRef = ref(database, `users/${userId}/${PALOMAS_REF}`);
 
     const unsubscribe = onValue(palomasRef, (snapshot) => {

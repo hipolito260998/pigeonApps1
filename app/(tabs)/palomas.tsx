@@ -1,15 +1,25 @@
 import { PalomaLista } from "@/components/PalomaLista";
+import { palomaService } from "@/services/palomaService";
 import { usePalomaStore } from "@/store/palomaStore";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
-import { SafeAreaView, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PalomasScreen() {
-  const { palomas } = usePalomaStore();
+  const { palomas, setPalomas } = usePalomaStore();
 
   useEffect(() => {
-    // TODO: Cargar palomas desde Firebase aquí
-    // Por ahora solo es una demostración
+    // Usamos el ID temporal "test-user" para descargar las palomas
+    const unsubscribe = palomaService.escucharPalomas(
+      "test-user",
+      (datosFirebase) => {
+        setPalomas(datosFirebase);
+      },
+    );
+
+    // Limpiamos la conexión a Firebase cuando se cierra la pantalla
+    return () => unsubscribe();
   }, []);
 
   return (

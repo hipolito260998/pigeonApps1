@@ -1,49 +1,61 @@
+import { palomaService } from "@/services/palomaService";
 import { usePalomaStore } from "@/store/palomaStore";
 import { Paloma } from "@/types";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface CrearPalomaFormProps {
   padreId?: string;
   madreId?: string;
+  palomaAEditar?: Paloma;
 }
 
 export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
   padreId,
   madreId,
+  palomaAEditar,
 }) => {
-  const [nombre, setNombre] = useState("");
-  const [anillo, setAnillo] = useState("");
-  const [raza, setRaza] = useState("");
-  const [sexo, setSexo] = useState<"macho" | "hembra">("macho");
-  const [color, setColor] = useState("");
-  const [fechaNacimiento, setFechaNacimiento] = useState(new Date());
-  const [notas, setNotas] = useState("");
+  const [nombre, setNombre] = useState(palomaAEditar?.nombre || "");
+  const [anillo, setAnillo] = useState(palomaAEditar?.anillo || "");
+  const [raza, setRaza] = useState(palomaAEditar?.raza || "");
+  const [sexo, setSexo] = useState<"macho" | "hembra">(
+    palomaAEditar?.sexo || "macho",
+  );
+  const [color, setColor] = useState(palomaAEditar?.color || "");
+  const [fechaNacimiento, setFechaNacimiento] = useState(
+    palomaAEditar?.fechaNacimiento || new Date(),
+  );
+  const [notas, setNotas] = useState(palomaAEditar?.notas || "");
+  const [padreSeleccionado, setPadreSeleccionado] = useState<
+    string | undefined
+  >(palomaAEditar?.padreId || padreId);
+  const [madreSeleccionada, setMadreSeleccionada] = useState<
+    string | undefined
+  >(palomaAEditar?.madreId || madreId);
   const [cargando, setCargando] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [modalPadresVisible, setModalPadresVisible] = useState(false);
+  const [tipoPadre, setTipoPadre] = useState<"padre" | "madre">("padre");
 
-  const { agregarPaloma } = usePalomaStore();
+  const { palomas } = usePalomaStore();
 
-  const handleFechaChange = (event: any, selectedDate?: Date) => {
-    if (event.type === "dismissed") {
-      setShowDatePicker(false);
-      return;
-    }
-    if (selectedDate) {
-      setFechaNacimiento(selectedDate);
-    }
-    setShowDatePicker(false);
-  };
+  const machos = palomas.filter(
+    (p) => p.sexo === "macho" && p.id !== palomaAEditar?.id,
+  );
+  const hembras = palomas.filter(
+    (p) => p.sexo === "hembra" && p.id !== palomaAEditar?.id,
+  );
 
   const validarFormulario = () => {
     if (!nombre.trim()) {
@@ -70,24 +82,49 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
 
     setCargando(true);
     try {
-      const nuevaPaloma: Omit<Paloma, "id"> = {
-        nombre,
-        anillo,
-        raza,
-        sexo,
-        color,
-        fechaNacimiento,
-        notas,
-        padreId,
-        madreId,
-        vacunas: [],
-        estado: "activa",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      if (palomaAEditar) {
+        const palomaActualizada: any = {
+          ...palomaAEditar,
+          nombre,
+          anillo,
+          raza,
+          sexo,
+          color,
+          fechaNacimiento,
+          notas,
+          updatedAt: new Date(),
+        };
 
-      agregarPaloma({ ...nuevaPaloma, id: `temp-${Date.now()}` });
-      Alert.alert("Éxito", "Paloma registrada correctamente");
+        if (padreSeleccionado) palomaActualizada.padreId = padreSeleccionado;
+        else palomaActualizada.padreId = null; // null le dice a Firebase que borre este campo
+
+        if (madreSeleccionada) palomaActualizada.madreId = madreSeleccionada;
+        else palomaActualizada.madreId = null;
+
+        await palomaService.actualizarPaloma("test-user", palomaActualizada);
+        Alert.alert("Éxito", "Paloma actualizada correctamente");
+      } else {
+        const nuevaPaloma: Omit<Paloma, "id"> = {
+          nombre,
+          anillo,
+          raza,
+          sexo,
+          color,
+          fechaNacimiento,
+          notas,
+          vacunas: [],
+          estado: "activa",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        if (padreSeleccionado) nuevaPaloma.padreId = padreSeleccionado;
+        if (madreSeleccionada) nuevaPaloma.madreId = madreSeleccionada;
+
+        await palomaService.crearPaloma("test-user", nuevaPaloma);
+        Alert.alert("Éxito", "Paloma registrada correctamente");
+      }
+
       router.back();
     } catch {
       Alert.alert("Error", "No se pudo registrar la paloma");
@@ -196,7 +233,13 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
             value={fechaNacimiento}
             mode="date"
             display="default"
-            onChange={handleFechaChange}
+            onValueChange={(event: any, selectedDate?: Date) => {
+              if (selectedDate) {
+                setFechaNacimiento(selectedDate);
+              }
+              setShowDatePicker(false);
+            }}
+            onDismiss={() => setShowDatePicker(false)}
           />
         )}
       </View>
@@ -214,14 +257,45 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
         />
       </View>
 
-      {/* Info de Padres si existen */}
-      {(padreId || madreId) && (
-        <View className="mb-4 p-3 bg-blue-50 rounded-lg">
-          <Text className="text-sm text-blue-700">
-            ℹ️ Paloma registrada como hijo de los padres seleccionados
+      {/* Selector de Padre */}
+      <View className="mb-4">
+        <Text className="text-sm font-semibold text-gray-700 mb-1">Padre</Text>
+        <TouchableOpacity
+          onPress={() => {
+            setTipoPadre("padre");
+            setModalPadresVisible(true);
+          }}
+          className="bg-white px-4 py-3 rounded-lg border border-gray-300"
+        >
+          <Text
+            className={padreSeleccionado ? "text-gray-800" : "text-gray-400"}
+          >
+            {padreSeleccionado
+              ? palomas.find((p) => p.id === padreSeleccionado)?.nombre
+              : "Seleccionar padre (opcional)"}
           </Text>
-        </View>
-      )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Selector de Madre */}
+      <View className="mb-6">
+        <Text className="text-sm font-semibold text-gray-700 mb-1">Madre</Text>
+        <TouchableOpacity
+          onPress={() => {
+            setTipoPadre("madre");
+            setModalPadresVisible(true);
+          }}
+          className="bg-white px-4 py-3 rounded-lg border border-gray-300"
+        >
+          <Text
+            className={madreSeleccionada ? "text-gray-800" : "text-gray-400"}
+          >
+            {madreSeleccionada
+              ? palomas.find((p) => p.id === madreSeleccionada)?.nombre
+              : "Seleccionar madre (opcional)"}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Botones */}
       <View className="flex-row gap-3 mb-6">
@@ -249,6 +323,59 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Modal para seleccionar padres */}
+      <Modal
+        visible={modalPadresVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <View
+          className="flex-1 justify-end"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <View className="bg-white rounded-t-2xl max-h-[80%]">
+            <View className="p-4 border-b border-gray-200 flex-row justify-between items-center">
+              <Text className="text-lg font-bold">Seleccionar {tipoPadre}</Text>
+              <TouchableOpacity onPress={() => setModalPadresVisible(false)}>
+                <Text className="text-red-500 font-semibold">Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView className="p-4">
+              <TouchableOpacity
+                onPress={() => {
+                  tipoPadre === "padre"
+                    ? setPadreSeleccionado(undefined)
+                    : setMadreSeleccionada(undefined);
+                  setModalPadresVisible(false);
+                }}
+                className="py-3 border-b border-gray-100"
+              >
+                <Text className="text-gray-500 italic">
+                  Ninguno / Quitar relación
+                </Text>
+              </TouchableOpacity>
+              {(tipoPadre === "padre" ? machos : hembras).map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  onPress={() => {
+                    tipoPadre === "padre"
+                      ? setPadreSeleccionado(p.id)
+                      : setMadreSeleccionada(p.id);
+                    setModalPadresVisible(false);
+                  }}
+                  className="py-3 border-b border-gray-100"
+                >
+                  <Text className="font-semibold text-gray-800">
+                    {p.nombre} (Anillo: {p.anillo})
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <View className="h-20" />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
