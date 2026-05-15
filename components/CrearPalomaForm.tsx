@@ -37,6 +37,9 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
     palomaAEditar?.fechaNacimiento || new Date(),
   );
   const [notas, setNotas] = useState(palomaAEditar?.notas || "");
+  const [estado, setEstado] = useState<
+    "activa" | "vendida" | "fallecida" | "retirada"
+  >(palomaAEditar?.estado || "activa");
   const [padreSeleccionado, setPadreSeleccionado] = useState<
     string | undefined
   >(palomaAEditar?.padreId || padreId);
@@ -92,6 +95,7 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
           color,
           fechaNacimiento,
           notas,
+          estado,
           updatedAt: new Date(),
         };
 
@@ -112,8 +116,8 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
           color,
           fechaNacimiento,
           notas,
+          estado,
           vacunas: [],
-          estado: "activa",
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -242,6 +246,38 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
             onDismiss={() => setShowDatePicker(false)}
           />
         )}
+      </View>
+
+      {/* Estado */}
+      <View className="mb-4">
+        <Text className="text-sm font-semibold text-gray-700 mb-2">Estado</Text>
+        <View className="flex-row flex-wrap gap-2">
+          {[
+            { value: "activa", label: "✅ Activa" },
+            { value: "vendida", label: "💰 Vendida" },
+            { value: "fallecida", label: "🪦 Fallecida" },
+            { value: "retirada", label: "🏠 Retirada" },
+          ].map((opcion) => (
+            <TouchableOpacity
+              key={opcion.value}
+              onPress={() => setEstado(opcion.value as any)}
+              disabled={cargando}
+              className={`py-2 px-3 rounded-lg border ${
+                estado === opcion.value
+                  ? "bg-blue-100 border-blue-400"
+                  : "bg-white border-gray-300"
+              }`}
+            >
+              <Text
+                className={`font-semibold ${
+                  estado === opcion.value ? "text-blue-700" : "text-gray-700"
+                }`}
+              >
+                {opcion.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* Notas */}
