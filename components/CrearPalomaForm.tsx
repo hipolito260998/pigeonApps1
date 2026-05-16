@@ -1,13 +1,25 @@
+import { storage } from "@/config/firebase";
 import { palomaService } from "@/services/palomaService";
+import { useAuthStore } from "@/store/authStore";
 import { usePalomaStore } from "@/store/palomaStore";
 import { Paloma } from "@/types";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -33,6 +45,9 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
     palomaAEditar?.sexo || "macho",
   );
   const [color, setColor] = useState(palomaAEditar?.color || "");
+  const [fotos, setFotos] = useState<string[]>(
+    palomaAEditar?.fotos || (palomaAEditar?.foto ? [palomaAEditar.foto] : []),
+  );
   const [fechaNacimiento, setFechaNacimiento] = useState(
     palomaAEditar?.fechaNacimiento || new Date(),
   );
@@ -52,6 +67,7 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
   const [tipoPadre, setTipoPadre] = useState<"padre" | "madre">("padre");
 
   const { palomas } = usePalomaStore();
+  const { user } = useAuthStore();
 
   const machos = palomas.filter(
     (p) => p.sexo === "macho" && p.id !== palomaAEditar?.id,
@@ -80,11 +96,62 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
     return true;
   };
 
+  const seleccionarFotos = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      quality: 1, // Calidad máxima inicial
+    });
+
+    if (!result.canceled) {
+      const nuevasUris = result.assets.map((a) => a.uri);
+      setFotos((prev) => [...prev, ...nuevasUris]);
+    }
+  };
+
+  const eliminarFoto = (index: number) => {
+    setFotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleGuardar = async () => {
     if (!validarFormulario()) return;
 
+    if (!user?.uid) {
+      Alert.alert("Error", "No hay sesión activa.");
+      return;
+    }
+
     setCargando(true);
     try {
+      const urlsFinales: string[] = [];
+
+      for (let i = 0; i < fotos.length; i++) {
+        const uri = fotos[i];
+        if (uri.startsWith("http")) {
+          urlsFinales.push(uri);
+        } else {
+          // 1. Comprimir imagen
+          const fotoComprimida = await ImageManipulator.manipulateAsync(
+            uri,
+            [{ resize: { width: 800 } }], // Redimensionar
+            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+          );
+
+          // 2. Preparar el archivo
+          const response = await fetch(fotoComprimida.uri);
+          const blob = await response.blob();
+
+          // 3. Crear referencia
+          const nombreArchivo = `users/${user.uid}/palomas/${Date.now()}_${i}.jpg`;
+          const storageRef = ref(storage, nombreArchivo);
+
+          // 4. Subir
+          await uploadBytes(storageRef, blob);
+          const urlDescarga = await getDownloadURL(storageRef);
+          urlsFinales.push(urlDescarga);
+        }
+      }
+
       if (palomaAEditar) {
         const palomaActualizada: any = {
           ...palomaAEditar,
@@ -96,6 +163,8 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
           fechaNacimiento,
           notas,
           estado,
+          fotos: urlsFinales.length > 0 ? urlsFinales : null,
+          foto: null, // Aseguramos que se borre el registro antiguo si existía
           updatedAt: new Date(),
         };
 
@@ -105,7 +174,24 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
         if (madreSeleccionada) palomaActualizada.madreId = madreSeleccionada;
         else palomaActualizada.madreId = null;
 
-        await palomaService.actualizarPaloma("test-user", palomaActualizada);
+        await palomaService.actualizarPaloma(user.uid, palomaActualizada);
+
+        // Eliminar las fotos físicas de Storage que fueron removidas
+        const fotosAntiguas =
+          palomaAEditar.fotos ||
+          (palomaAEditar.foto ? [palomaAEditar.foto] : []);
+        const fotosEliminadas = fotosAntiguas.filter(
+          (url) => !urlsFinales.includes(url),
+        );
+        for (const url of fotosEliminadas) {
+          try {
+            const fotoRef = ref(storage, url);
+            await deleteObject(fotoRef);
+          } catch (e) {
+            console.error("No se pudo eliminar la foto vieja de Storage:", e);
+          }
+        }
+
         Alert.alert("Éxito", "Paloma actualizada correctamente");
       } else {
         const nuevaPaloma: Omit<Paloma, "id"> = {
@@ -117,6 +203,7 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
           fechaNacimiento,
           notas,
           estado,
+          ...(urlsFinales.length > 0 ? { fotos: urlsFinales } : {}),
           vacunas: [],
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -125,12 +212,13 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
         if (padreSeleccionado) nuevaPaloma.padreId = padreSeleccionado;
         if (madreSeleccionada) nuevaPaloma.madreId = madreSeleccionada;
 
-        await palomaService.crearPaloma("test-user", nuevaPaloma);
+        await palomaService.crearPaloma(user.uid, nuevaPaloma);
         Alert.alert("Éxito", "Paloma registrada correctamente");
       }
 
       router.back();
-    } catch {
+    } catch (error) {
+      console.error("Error detallado al guardar:", error);
       Alert.alert("Error", "No se pudo registrar la paloma");
     } finally {
       setCargando(false);
@@ -138,7 +226,50 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 p-4">
+    <ScrollView
+      className="flex-1 bg-gray-50 p-4"
+      contentContainerStyle={{ flexGrow: 1 }}
+    >
+      {/* Selector de Foto */}
+      <View className="mb-6">
+        <Text className="text-sm font-semibold text-gray-700 mb-2">
+          Fotos de la Paloma ({fotos.length})
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="flex-row"
+        >
+          {fotos.map((uri, idx) => (
+            <View key={idx} className="mr-3 relative">
+              <Image
+                source={{ uri }}
+                className="w-32 h-32 rounded-xl bg-gray-200"
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                onPress={() => eliminarFoto(idx)}
+                disabled={cargando}
+                className="absolute top-1 right-1 bg-red-500 w-8 h-8 rounded-full items-center justify-center shadow"
+              >
+                <Text className="text-white font-bold">✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          <TouchableOpacity
+            onPress={seleccionarFotos}
+            disabled={cargando}
+            className="w-32 h-32 bg-gray-100 rounded-xl justify-center items-center border-2 border-dashed border-gray-400"
+          >
+            <Text className="text-3xl mb-1">➕</Text>
+            <Text className="text-xs text-gray-500 font-medium">
+              Añadir foto
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
       {/* Nombre */}
       <View className="mb-4">
         <Text className="text-sm font-semibold text-gray-700 mb-1">Nombre</Text>
@@ -223,28 +354,41 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
         <Text className="text-sm font-semibold text-gray-700 mb-1">
           Fecha de Nacimiento
         </Text>
-        <TouchableOpacity
-          onPress={() => setShowDatePicker(true)}
-          disabled={cargando}
-          className="bg-white px-4 py-3 rounded-lg border border-gray-300"
-        >
-          <Text className="text-gray-700">
-            {fechaNacimiento.toLocaleDateString()}
-          </Text>
-        </TouchableOpacity>
-        {showDatePicker && (
-          <DateTimePicker
-            value={fechaNacimiento}
-            mode="date"
-            display="default"
-            onValueChange={(event: any, selectedDate?: Date) => {
-              if (selectedDate) {
-                setFechaNacimiento(selectedDate);
-              }
-              setShowDatePicker(false);
-            }}
-            onDismiss={() => setShowDatePicker(false)}
-          />
+        {Platform.OS === "ios" ? (
+          <View className="items-start">
+            <DateTimePicker
+              value={fechaNacimiento}
+              mode="date"
+              display="default"
+              onValueChange={(event: any, selectedDate?: Date) => {
+                if (selectedDate) setFechaNacimiento(selectedDate);
+              }}
+            />
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              disabled={cargando}
+              className="bg-white px-4 py-3 rounded-lg border border-gray-300"
+            >
+              <Text className="text-gray-700">
+                {fechaNacimiento.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={fechaNacimiento}
+                mode="date"
+                display="default"
+                onValueChange={(event: any, selectedDate?: Date) => {
+                  if (selectedDate) setFechaNacimiento(selectedDate);
+                  setShowDatePicker(false);
+                }}
+                onDismiss={() => setShowDatePicker(false)}
+              />
+            )}
+          </>
         )}
       </View>
 
@@ -380,9 +524,9 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
             <ScrollView className="p-4">
               <TouchableOpacity
                 onPress={() => {
-                  tipoPadre === "padre"
+                  void (tipoPadre === "padre"
                     ? setPadreSeleccionado(undefined)
-                    : setMadreSeleccionada(undefined);
+                    : setMadreSeleccionada(undefined));
                   setModalPadresVisible(false);
                 }}
                 className="py-3 border-b border-gray-100"
@@ -395,9 +539,9 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
                 <TouchableOpacity
                   key={p.id}
                   onPress={() => {
-                    tipoPadre === "padre"
+                    void (tipoPadre === "padre"
                       ? setPadreSeleccionado(p.id)
-                      : setMadreSeleccionada(p.id);
+                      : setMadreSeleccionada(p.id));
                     setModalPadresVisible(false);
                   }}
                   className="py-3 border-b border-gray-100"

@@ -1,24 +1,34 @@
 import { ArbolGenealogicoPaloma } from "@/components/ArbolGenealogicoPaloma";
 import { palomaService } from "@/services/palomaService";
+import { useAuthStore } from "@/store/authStore";
 import { usePalomaStore } from "@/store/palomaStore";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
+  Image,
   Modal,
+  Platform,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DetailsPalomaScreen() {
   const params = useLocalSearchParams();
   const palomaId = typeof params.id === "string" ? params.id : "";
   const { palomas, setPalomaSeleccionada } = usePalomaStore();
+  const { user } = useAuthStore();
   const [modalVacuna, setModalVacuna] = useState(false);
   const [nombreVacuna, setNombreVacuna] = useState("");
+  const [fechaVacuna, setFechaVacuna] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [modalFotoVisible, setModalFotoVisible] = useState(false);
+  const [fotoSeleccionada, setFotoSeleccionada] = useState<string | null>(null);
+  const screenWidth = Dimensions.get("window").width;
 
   const paloma = palomas.find((p) => p.id === palomaId);
 
@@ -30,19 +40,22 @@ export default function DetailsPalomaScreen() {
 
   const agregarVacuna = async () => {
     if (!nombreVacuna.trim() || !paloma) return;
+    if (!user?.uid) return;
+
     try {
       const nuevaVacuna = {
         id: Date.now().toString(),
         nombre: nombreVacuna,
-        fecha: new Date().toISOString() as unknown as Date,
+        fecha: fechaVacuna.toISOString() as unknown as Date,
       };
       const vacunasActualizadas = [...(paloma.vacunas || []), nuevaVacuna];
-      await palomaService.actualizarPaloma("test-user", {
+      await palomaService.actualizarPaloma(user.uid, {
         ...paloma,
         vacunas: vacunasActualizadas,
       });
       setModalVacuna(false);
       setNombreVacuna("");
+      setFechaVacuna(new Date());
     } catch (error) {
       console.error(error);
     }
@@ -50,14 +63,21 @@ export default function DetailsPalomaScreen() {
 
   if (!paloma) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
+      <View className="flex-1 bg-gray-50 justify-center items-center">
         <Text className="text-red-600 text-lg">Paloma no encontrada</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
+  const fotosArray =
+    paloma.fotos && paloma.fotos.length > 0
+      ? paloma.fotos
+      : paloma.foto
+        ? [paloma.foto]
+        : [];
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="px-4 py-4 bg-white border-b border-gray-200 flex-row justify-between items-center">
         <View>
@@ -76,6 +96,48 @@ export default function DetailsPalomaScreen() {
 
       {/* Contenido */}
       <ScrollView className="flex-1">
+        {/* Foto de la Paloma */}
+        {fotosArray.length > 0 ? (
+          <View>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              className="h-64 bg-black"
+            >
+              {fotosArray.map((url, index) => (
+                <TouchableOpacity
+                  key={index}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    setFotoSeleccionada(url);
+                    setModalFotoVisible(true);
+                  }}
+                  style={{ width: screenWidth, height: 256 }}
+                >
+                  <Image
+                    source={{ uri: url }}
+                    className="w-full h-full"
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            {fotosArray.length > 1 && (
+              <Text className="absolute bottom-2 right-2 text-white bg-black/50 px-2 py-1 rounded-md text-xs font-bold">
+                Desliza para ver más ({fotosArray.length})
+              </Text>
+            )}
+          </View>
+        ) : (
+          <View className="w-full h-48 bg-gray-200 justify-center items-center">
+            <Text className="text-6xl mb-2">🐦</Text>
+            <Text className="text-gray-500 font-medium">
+              Sin foto registrada
+            </Text>
+          </View>
+        )}
+
         {/* Información Básica */}
         <View className="bg-white m-4 p-4 rounded-lg border border-gray-200">
           <Text className="text-lg font-bold text-gray-800 mb-3">
@@ -180,11 +242,54 @@ export default function DetailsPalomaScreen() {
               onChangeText={setNombreVacuna}
               autoFocus
             />
+
+            <View className="mb-5">
+              <Text className="text-sm font-semibold text-gray-700 mb-1">
+                Fecha de Aplicación
+              </Text>
+              {Platform.OS === "ios" ? (
+                <View className="items-baseline">
+                  <DateTimePicker
+                    value={fechaVacuna}
+                    mode="date"
+                    display="default"
+                    onValueChange={(event: any, selectedDate?: Date) => {
+                      if (selectedDate) setFechaVacuna(selectedDate);
+                    }}
+                  />
+                </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(true)}
+                    className="bg-gray-50 px-4 py-3 rounded-lg border border-gray-300"
+                  >
+                    <Text className="text-gray-700">
+                      {fechaVacuna.toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={fechaVacuna}
+                      mode="date"
+                      display="default"
+                      onValueChange={(event: any, selectedDate?: Date) => {
+                        if (selectedDate) setFechaVacuna(selectedDate);
+                        setShowDatePicker(false);
+                      }}
+                      onDismiss={() => setShowDatePicker(false)}
+                    />
+                  )}
+                </>
+              )}
+            </View>
+
             <View className="flex-row gap-3">
               <TouchableOpacity
                 onPress={() => {
                   setModalVacuna(false);
                   setNombreVacuna("");
+                  setFechaVacuna(new Date());
                 }}
                 className="flex-1 bg-gray-200 py-3 rounded-lg"
               >
@@ -204,6 +309,31 @@ export default function DetailsPalomaScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+
+      {/* Modal para ver Foto en Pantalla Completa */}
+      <Modal
+        visible={modalFotoVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setModalFotoVisible(false)}
+      >
+        <View className="flex-1 bg-black justify-center items-center">
+          <TouchableOpacity
+            onPress={() => setModalFotoVisible(false)}
+            className="absolute top-12 right-4 z-10 bg-white/20 px-4 py-2 rounded-full"
+          >
+            <Text className="text-white font-bold">✕ Cerrar</Text>
+          </TouchableOpacity>
+
+          {fotoSeleccionada && (
+            <Image
+              source={{ uri: fotoSeleccionada }}
+              className="w-full h-full"
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
+    </View>
   );
 }

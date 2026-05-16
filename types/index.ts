@@ -19,6 +19,7 @@ export interface Paloma {
   vacunas: Vacuna[];
   notas?: string;
   foto?: string;
+  fotos?: string[];
   estado: "activa" | "vendida" | "fallecida" | "retirada";
   createdAt: Date;
   updatedAt: Date;

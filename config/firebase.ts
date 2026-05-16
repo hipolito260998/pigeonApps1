@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { initializeAuth, inMemoryPersistence } from "firebase/auth";
 import { getDatabase } from "firebase/database";
+import { getStorage } from "firebase/storage";
 
 // TODO: Reemplaza estos valores con tus credenciales de Firebase
 // Obtén esto de: https://console.firebase.google.com/
@@ -19,5 +20,6 @@ export const auth = initializeAuth(app, {
   persistence: inMemoryPersistence
 });
 export const database = getDatabase(app);
+export const storage = getStorage(app);
 
 console.log("🔥 Firebase initialized");

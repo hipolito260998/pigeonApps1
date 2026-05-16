@@ -1,5 +1,6 @@
 import { PalomaLista } from "@/components/PalomaLista";
 import { palomaService } from "@/services/palomaService";
+import { useAuthStore } from "@/store/authStore";
 import { usePalomaStore } from "@/store/palomaStore";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
@@ -8,19 +9,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PalomasScreen() {
   const { palomas, setPalomas } = usePalomaStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    // Usamos el ID temporal "test-user" para descargar las palomas
+    if (!user?.uid) return;
+
     const unsubscribe = palomaService.escucharPalomas(
-      "test-user",
+      user.uid,
       (datosFirebase) => {
         setPalomas(datosFirebase);
       },
     );
 
-    // Limpiamos la conexión a Firebase cuando se cierra la pantalla
     return () => unsubscribe();
-  }, []);
+  }, [setPalomas, user?.uid]);
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">

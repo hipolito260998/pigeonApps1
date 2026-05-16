@@ -79,12 +79,10 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
 
     return {
       paloma,
-      padre: padre ? { paloma: padre, padre: null, madre: null, hijos: [] } : undefined,
-      madre: madre ? { paloma: madre, padre: null, madre: null, hijos: [] } : undefined,
+      padre: padre ? { paloma: padre, hijos: [] } : undefined,
+      madre: madre ? { paloma: madre, hijos: [] } : undefined,
       hijos: hijos.map((h) => ({
         paloma: h,
-        padre: null,
-        madre: null,
         hijos: [],
       })),
     };
