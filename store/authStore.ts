@@ -68,10 +68,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setError: (error) => set({ error }),
 
   verificarUsuario: () => {
+    // Si ya estamos escuchando o cargando, evitamos suscribirnos doble
     set({ cargando: true });
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    
+    onAuthStateChanged(auth, (user) => {
+      // Firebase llamará a esto automáticamente cuando recupere la sesión de AsyncStorage
+      // y también si el usuario cierra sesión o expira su token.
       set({ user, cargando: false });
-      unsubscribe();
     });
   },
 }));

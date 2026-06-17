@@ -3,7 +3,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
@@ -20,72 +20,63 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { user, verificarUsuario, cargando } = useAuthStore();
+  const segments = useSegments();
+  const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
 
   useEffect(() => {
     verificarUsuario();
   }, [verificarUsuario]);
 
-  if (cargando) {
-    return null; // O mostrar loading screen
-  }
+
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerBackTitle: "Atrás", headerShown: false }}>
-        {user ? (
-          [
-            // Rutas protegidas - Solo si hay usuario
-            <Stack.Screen
-              key="tabs"
-              name="(tabs)"
-              options={{ title: "Inicio" }}
-            />,
-            <Stack.Screen
-              key="modal"
-              name="modal"
-              options={{
-                presentation: "modal",
-                title: "Modal",
-                headerShown: true,
-              }}
-            />,
-            <Stack.Screen
-              key="detalles"
-              name="paloma/[id]"
-              options={{
-                title: "Detalles",
-                headerShown: true,
-                presentation: "card",
-              }}
-            />,
-            <Stack.Screen
-              key="nueva"
-              name="paloma/nueva"
-              options={{
-                title: "Nueva Paloma",
-                headerShown: true,
-                presentation: "card",
-              }}
-            />,
-            <Stack.Screen
-              key="editar"
-              name="paloma/editar/[id]"
-              options={{
-                title: "Editar Paloma",
-                headerShown: true,
-              }}
-            />,
-          ]
-        ) : (
-          // Login - Si no hay usuario
-          <Stack.Screen
-            name="auth/login"
-            options={{
-              headerShown: false,
-              animation: "none",
-            }}
-          />
-        )}
+        {/* Login */}
+        <Stack.Screen
+          name="auth/login"
+          options={{
+            headerShown: false,
+            animation: "none",
+          }}
+        />
+        {/* Rutas protegidas */}
+        <Stack.Screen
+          name="(tabs)"
+          options={{ title: "Inicio" }}
+        />
+        <Stack.Screen
+          name="modal"
+          options={{
+            presentation: "modal",
+            title: "Modal",
+            headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="paloma/[id]"
+          options={{
+            title: "Detalles",
+            headerShown: true,
+            presentation: "card",
+          }}
+        />
+        <Stack.Screen
+          name="paloma/nueva"
+          options={{
+            title: "Nueva Paloma",
+            headerShown: true,
+            presentation: "card",
+          }}
+        />
+        <Stack.Screen
+          name="paloma/editar/[id]"
+          options={{
+            title: "Editar Paloma",
+            headerShown: true,
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
       <Toast />

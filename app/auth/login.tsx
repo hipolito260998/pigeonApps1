@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/store/authStore";
-import { router } from "expo-router";
+import { router, Redirect } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -16,7 +16,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
-  const { iniciarSesion, registrarse, cargando, error } = useAuthStore();
+  const { iniciarSesion, registrarse, cargando, error, user } = useAuthStore();
+
+  if (user) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const handleLogin = async () => {
     if (!email || !password) {

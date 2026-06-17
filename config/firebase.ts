@@ -1,10 +1,10 @@
-import { initializeApp } from "firebase/app";
-import { initializeAuth, inMemoryPersistence } from "firebase/auth";
+import { getApps, getApp, initializeApp } from "firebase/app";
+import { getReactNativePersistence, initializeAuth, getAuth } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // TODO: Reemplaza estos valores con tus credenciales de Firebase
-// Obtén esto de: https://console.firebase.google.com/
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "YOUR_API_KEY",
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "your-app.firebaseapp.com",
@@ -15,10 +15,21 @@ const firebaseConfig = {
   databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || "https://your-project-id.firebaseio.com",
 };
 
-export const app = initializeApp(firebaseConfig);
-export const auth = initializeAuth(app, {
-  persistence: inMemoryPersistence
-});
+// Evitar doble inicialización en Expo Fast Refresh
+export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+// Inicialización de Auth segura contra recargas en caliente
+let firebaseAuth;
+try {
+  firebaseAuth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch (e: any) {
+  // Si ya estaba inicializado, simplemente lo recuperamos
+  firebaseAuth = getAuth(app);
+}
+
+export const auth = firebaseAuth;
 export const database = getDatabase(app);
 export const storage = getStorage(app);
 

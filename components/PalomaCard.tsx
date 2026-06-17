@@ -8,8 +8,10 @@ interface PalomaCardProps {
 }
 
 export const PalomaCard: React.FC<PalomaCardProps> = ({ paloma, onPress }) => {
+  const fechaNac = paloma.fechaNacimiento ? new Date(paloma.fechaNacimiento) : new Date();
+  
   const edad = Math.floor(
-    (new Date().getTime() - paloma.fechaNacimiento.getTime()) /
+    (new Date().getTime() - fechaNac.getTime()) /
       (365 * 24 * 60 * 60 * 1000),
   );
 
