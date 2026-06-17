@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { PalomaCard } from "./PalomaCard";
 
+import Animated, { FadeInDown } from "react-native-reanimated";
+
 interface PalomaListaProps {
   filtro?: "todas" | "padres" | "madres";
 }
@@ -41,7 +43,7 @@ export const PalomaLista: React.FC<PalomaListaProps> = ({
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // TODO: Implementar actualización de datos
+    // TODO: Implementar actualización de datos extra si es necesario
     setTimeout(() => setRefreshing(false), 1000);
   };
 
@@ -72,11 +74,13 @@ export const PalomaLista: React.FC<PalomaListaProps> = ({
   }
 
   return (
-    <FlatList
+    <Animated.FlatList
       data={palomasFilter}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <PalomaCard paloma={item} onPress={handlePalomaPress} />
+      renderItem={({ item, index }) => (
+        <Animated.View entering={FadeInDown.delay(index * 100).duration(400).springify()}>
+          <PalomaCard paloma={item} onPress={handlePalomaPress} />
+        </Animated.View>
       )}
       contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16 }}
       refreshControl={
