@@ -2,7 +2,7 @@ import { PalomaLista } from "@/components/PalomaLista";
 import { palomaService } from "@/services/palomaService";
 import { useAuthStore } from "@/store/authStore";
 import { usePalomaStore } from "@/store/palomaStore";
-import { router } from "expo-router";
+import { router, Link } from "expo-router";
 import React, { useEffect } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,12 +31,11 @@ export default function PalomasScreen() {
           <Text className="text-2xl font-bold text-gray-800">
             🐦 Mis Palomas
           </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/paloma/nueva")}
-            className="bg-primary px-4 py-2 rounded-lg"
-          >
-            <Text className="text-white font-semibold text-sm">+ Nueva</Text>
-          </TouchableOpacity>
+          <Link href="/paloma/nueva" asChild>
+            <TouchableOpacity className="bg-primary px-4 py-2 rounded-lg">
+              <Text className="text-white font-semibold text-sm">+ Nueva</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
 
         {/* Stats */}

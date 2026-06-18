@@ -13,9 +13,6 @@ import "../global.css";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/store/authStore";
 
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -67,7 +64,7 @@ export default function RootLayout() {
           options={{
             title: "Nueva Paloma",
             headerShown: true,
-            presentation: "card",
+            presentation: "modal",
           }}
         />
         <Stack.Screen
@@ -75,6 +72,7 @@ export default function RootLayout() {
           options={{
             title: "Editar Paloma",
             headerShown: true,
+            presentation: "modal",
           }}
         />
       </Stack>

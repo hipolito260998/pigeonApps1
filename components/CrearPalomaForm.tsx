@@ -173,7 +173,11 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
         });
       }
 
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)");
+      }
     } catch (error) {
       console.error("Error al guardar:", error);
       Toast.show({
@@ -457,7 +461,13 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
       {/* Botones */}
       <View className="flex-row gap-3 mb-6">
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/(tabs)");
+            }
+          }}
           disabled={isSubmitting}
           className="flex-1 bg-gray-300 py-3 rounded-lg"
         >
