@@ -1,3 +1,4 @@
+import "../suppress-warnings";
 import {
   DarkTheme,
   DefaultTheme,
@@ -12,7 +13,14 @@ import "../global.css";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/store/authStore";
+import { LogBox } from "react-native";
 
+// Ignorar advertencias inofensivas de deprecación de React Native Web
+// generadas por librerías internas como React Navigation
+LogBox.ignoreLogs([
+  "props.pointerEvents is deprecated",
+  '"shadow*" style props are deprecated',
+]);
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -25,11 +33,43 @@ export default function RootLayout() {
     verificarUsuario();
   }, [verificarUsuario]);
 
+  // Guardián de Rutas (Protected Routes)
+  useEffect(() => {
+    if (!rootNavigationState?.key || cargando) return;
 
+    const inAuthGroup = segments[0] === "auth";
+
+    if (!user && !inAuthGroup) {
+      // Usuario no autenticado intentando entrar a ruta privada -> Al login
+      router.replace("/auth/login");
+    } else if (user && inAuthGroup) {
+      // Usuario autenticado intentando entrar al login -> A inicio
+      router.replace("/(tabs)/palomas");
+    }
+  }, [user, segments, cargando, rootNavigationState?.key]);
+
+  if (cargando) {
+    // Evitar renderizar la aplicación si todavía estamos verificando el token
+    return null; 
+  }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerBackTitle: "Atrás", headerShown: false }}>
+    <ThemeProvider value={DefaultTheme}>
+      <Stack
+        screenOptions={{
+          headerBackTitle: "Atrás",
+          headerShown: false,
+          headerTintColor: "#0d9488", // Tema Esmeralda
+          headerStyle: {
+            backgroundColor: "#ffffff", // Fondo blanco
+          },
+          headerTitleStyle: {
+            color: "#1f2937", // Gris oscuro para el texto
+            fontWeight: "bold",
+          },
+          headerShadowVisible: false, // Quitar la linea divisoria fea
+        }}
+      >
         {/* Login */}
         <Stack.Screen
           name="auth/login"
@@ -62,17 +102,17 @@ export default function RootLayout() {
         <Stack.Screen
           name="paloma/nueva"
           options={{
-            title: "Nueva Paloma",
-            headerShown: true,
-            presentation: "modal",
+            headerShown: false,
+            presentation: "transparentModal",
+            animation: "fade",
           }}
         />
         <Stack.Screen
           name="paloma/editar/[id]"
           options={{
-            title: "Editar Paloma",
-            headerShown: true,
-            presentation: "modal",
+            headerShown: false,
+            presentation: "transparentModal",
+            animation: "fade",
           }}
         />
       </Stack>

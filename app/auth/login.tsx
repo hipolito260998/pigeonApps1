@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/store/authStore";
-import { router, Redirect } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -11,43 +11,52 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nombre, setNombre] = useState("");
   const [isRegister, setIsRegister] = useState(false);
-  const { iniciarSesion, registrarse, cargando, error, user } = useAuthStore();
-
-  if (user) {
-    return <Redirect href="/(tabs)" />;
-  }
+  const { iniciarSesion, registrarse, cargando, error } = useAuthStore();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Por favor completa email y contraseña");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Por favor completa email y contraseña'
+      });
       return;
     }
 
     try {
       if (isRegister) {
-        await registrarse(email, password);
-        Alert.alert("Éxito", "Cuenta creada correctamente");
+        if (!nombre) {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Por favor ingresa tu nombre completo'
+          });
+          return;
+        }
+        await registrarse(email, password, nombre);
+        Toast.show({
+          type: 'success',
+          text1: 'Éxito',
+          text2: 'Cuenta creada correctamente'
+        });
         setIsRegister(false);
       } else {
         await iniciarSesion(email, password);
         router.replace("/(tabs)/palomas");
       }
     } catch (err: any) {
-      const messages: { [key: string]: string } = {
-        "auth/user-not-found": "Usuario no encontrado",
-        "auth/wrong-password": "Contraseña incorrecta",
-        "auth/email-already-in-use": "Este email ya está registrado",
-        "auth/weak-password": "Contraseña muy débil (mínimo 6 caracteres)",
-        "auth/invalid-email": "Email inválido",
-      };
-
-      const mensaje = messages[err.code] || error || "Error de autenticación";
-      Alert.alert("Error", mensaje);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: useAuthStore.getState().error || "Ocurrió un error al autenticar"
+      });
     }
   };
 
@@ -76,6 +85,24 @@ export default function LoginScreen() {
           <Text className="text-2xl font-bold text-gray-800 mb-6 text-center">
             {isRegister ? "Crear Cuenta" : "Iniciar Sesión"}
           </Text>
+
+          {/* Nombre (solo registro) */}
+          {isRegister && (
+            <View className="mb-4">
+              <Text className="text-sm font-semibold text-gray-700 mb-1">
+                Nombre Completo
+              </Text>
+              <TextInput
+                className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 text-gray-800"
+                placeholder="Ej: Juan Pérez"
+                value={nombre}
+                onChangeText={setNombre}
+                autoCapitalize="words"
+                editable={!cargando}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+          )}
 
           {/* Email */}
           <View className="mb-4">
@@ -109,13 +136,6 @@ export default function LoginScreen() {
               placeholderTextColor="#9CA3AF"
             />
           </View>
-
-          {/* Error */}
-          {error && (
-            <View className="bg-red-50 p-3 rounded-lg mb-4 border border-red-100">
-              <Text className="text-red-700 text-sm">{error}</Text>
-            </View>
-          )}
 
           {/* Login Button */}
           <TouchableOpacity

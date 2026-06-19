@@ -6,26 +6,8 @@ import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
-  const { cerrarSesion, user } = useAuthStore();
+  const { user } = useAuthStore();
   const insets = useSafeAreaInsets();
-
-  const handleLogout = async () => {
-    Alert.alert("Cerrar Sesión", "¿Estás seguro que deseas cerrar sesión?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Cerrar Sesión",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await cerrarSesion();
-            router.replace("/auth/login");
-          } catch {
-            Alert.alert("Error", "No se pudo cerrar sesión");
-          }
-        },
-      },
-    ]);
-  };
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -91,27 +73,17 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/(tabs)/explore")}
+              onPress={() => router.push("/(tabs)/perfil")}
               className="flex-1 bg-white p-5 rounded-2xl border border-gray-100 items-center shadow-sm"
             >
               <View className="bg-purple-50 p-4 rounded-full mb-3">
-                <FontAwesome6 name="magnifying-glass" size={24} color="black" />
+                <FontAwesome6 name="user" size={24} color="black" />
               </View>
               <Text className="font-bold text-gray-800 text-center">
-                Explorar App
+                Mi Perfil
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Botón de Logout */}
-          <TouchableOpacity
-            onPress={handleLogout}
-            className="mt-6 bg-red-50 border-2 border-red-200 px-4 py-3 rounded-xl"
-          >
-            <Text className="text-red-600 font-bold text-center">
-              🚪 Cerrar Sesión ({user?.email})
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>

@@ -334,7 +334,28 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
           name="fechaNacimiento"
           render={({ field: { onChange, value } }) => (
             <>
-              {Platform.OS === "ios" ? (
+              {Platform.OS === "web" ? (
+                <input
+                  type="date"
+                  value={value.toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    const newDate = new Date(e.target.value);
+                    // Ajustar zona horaria local para evitar saltos de día
+                    newDate.setMinutes(newDate.getMinutes() + newDate.getTimezoneOffset());
+                    onChange(newDate);
+                  }}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #D1D5DB',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    width: '100%',
+                    fontSize: '16px',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              ) : Platform.OS === "ios" ? (
                 <View className="items-start">
                   <DateTimePicker
                     value={value}
@@ -360,10 +381,9 @@ export const CrearPalomaForm: React.FC<CrearPalomaFormProps> = ({
                       mode="date"
                       display="default"
                       onValueChange={(event: any, selectedDate?: Date) => {
-                        if (selectedDate) onChange(selectedDate);
                         setShowDatePicker(false);
+                        if (selectedDate) onChange(selectedDate);
                       }}
-                      onDismiss={() => setShowDatePicker(false)}
                     />
                   )}
                 </>

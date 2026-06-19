@@ -6,6 +6,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Dimensions,
   Image,
   Modal,
@@ -26,6 +27,10 @@ export default function DetailsPalomaScreen() {
   const [nombreVacuna, setNombreVacuna] = useState("");
   const [fechaVacuna, setFechaVacuna] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const [modalEliminarVacuna, setModalEliminarVacuna] = useState(false);
+  const [vacunaAEliminar, setVacunaAEliminar] = useState<string | null>(null);
+
   const [modalFotoVisible, setModalFotoVisible] = useState(false);
   const [fotoSeleccionada, setFotoSeleccionada] = useState<string | null>(null);
   const screenWidth = Dimensions.get("window").width;
@@ -58,6 +63,27 @@ export default function DetailsPalomaScreen() {
       setFechaVacuna(new Date());
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const eliminarVacuna = (idVacuna: string) => {
+    setVacunaAEliminar(idVacuna);
+    setModalEliminarVacuna(true);
+  };
+
+  const confirmarEliminacion = async () => {
+    if (!paloma || !user?.uid || !vacunaAEliminar) return;
+
+    try {
+      const vacunasActualizadas = paloma.vacunas?.filter(v => v.id !== vacunaAEliminar) || [];
+      await palomaService.actualizarPaloma(user.uid, {
+        ...paloma,
+        vacunas: vacunasActualizadas,
+      });
+      setModalEliminarVacuna(false);
+      setVacunaAEliminar(null);
+    } catch (error) {
+      console.error("Error al eliminar vacuna:", error);
     }
   };
 
@@ -190,13 +216,21 @@ export default function DetailsPalomaScreen() {
 
           {paloma.vacunas && paloma.vacunas.length > 0 ? (
             paloma.vacunas.map((vacuna) => (
-              <View key={vacuna.id} className="py-2 border-b border-gray-200">
-                <Text className="font-semibold text-gray-800">
-                  {vacuna.nombre}
-                </Text>
-                <Text className="text-sm text-gray-600">
-                  {new Date(vacuna.fecha).toLocaleDateString()}
-                </Text>
+              <View key={vacuna.id} className="py-2 border-b border-gray-200 flex-row justify-between items-center">
+                <View>
+                  <Text className="font-semibold text-gray-800">
+                    {vacuna.nombre}
+                  </Text>
+                  <Text className="text-sm text-gray-600">
+                    {new Date(vacuna.fecha).toLocaleDateString()}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => eliminarVacuna(vacuna.id)}
+                  className="bg-red-100 p-2 rounded-full"
+                >
+                  <Text className="text-red-600 text-xs font-bold">Eliminar</Text>
+                </TouchableOpacity>
               </View>
             ))
           ) : (
@@ -207,14 +241,14 @@ export default function DetailsPalomaScreen() {
         </View>
 
         {/* Notas */}
-        {paloma.notas && (
+        {paloma.notas ? (
           <View className="bg-white m-4 p-4 rounded-lg border border-gray-200">
             <Text className="text-lg font-bold text-gray-800 mb-2">
               📝 Notas
             </Text>
             <Text className="text-gray-700">{paloma.notas}</Text>
           </View>
-        )}
+        ) : null}
 
         {/* Árbol Genealógico */}
         <View className="m-4">
@@ -247,7 +281,28 @@ export default function DetailsPalomaScreen() {
               <Text className="text-sm font-semibold text-gray-700 mb-1">
                 Fecha de Aplicación
               </Text>
-              {Platform.OS === "ios" ? (
+              {Platform.OS === "web" ? (
+                <input
+                  type="date"
+                  value={fechaVacuna.toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    const newDate = new Date(e.target.value);
+                    // Ajustar zona horaria local para evitar saltos de día
+                    newDate.setMinutes(newDate.getMinutes() + newDate.getTimezoneOffset());
+                    setFechaVacuna(newDate);
+                  }}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #D1D5DB',
+                    backgroundColor: '#F9FAFB',
+                    color: '#374151',
+                    width: '100%',
+                    fontSize: '16px',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              ) : Platform.OS === "ios" ? (
                 <View className="items-baseline">
                   <DateTimePicker
                     value={fechaVacuna}
@@ -274,10 +329,9 @@ export default function DetailsPalomaScreen() {
                       mode="date"
                       display="default"
                       onValueChange={(event: any, selectedDate?: Date) => {
-                        if (selectedDate) setFechaVacuna(selectedDate);
                         setShowDatePicker(false);
+                        if (selectedDate) setFechaVacuna(selectedDate);
                       }}
-                      onDismiss={() => setShowDatePicker(false)}
                     />
                   )}
                 </>
@@ -334,6 +388,55 @@ export default function DetailsPalomaScreen() {
           )}
         </View>
       </Modal>
+
+      {/* Modal para Confirmar Eliminación de Vacuna */}
+      <Modal visible={modalEliminarVacuna} animationType="fade" transparent={true}>
+        <View
+          className="flex-1 justify-center items-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <View className="bg-white w-10/12 max-w-sm rounded-3xl p-8 items-center shadow-lg">
+            <View className="bg-red-50 p-4 rounded-full mb-5">
+              <Text className="text-4xl">🗑️</Text>
+            </View>
+            <Text className="text-2xl font-bold text-gray-800 mb-2 text-center">
+              ¿Eliminar Vacuna?
+            </Text>
+            <Text className="text-gray-500 text-center mb-8">
+              Esta acción borrará el registro de la vacuna permanentemente. No podrás deshacerlo.
+            </Text>
+
+            <View className="flex-row gap-4 w-full">
+              <TouchableOpacity
+                onPress={() => {
+                  setModalEliminarVacuna(false);
+                  setVacunaAEliminar(null);
+                }}
+                className="flex-1 bg-gray-100 py-4 rounded-xl"
+              >
+                <Text className="text-center font-bold text-gray-700">
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmarEliminacion}
+                className="flex-1 bg-red-500 py-4 rounded-xl"
+                style={{
+                  ...Platform.select({
+                    web: { boxShadow: "0px 4px 10px rgba(239, 68, 68, 0.3)" as any },
+                    default: { elevation: 5, shadowColor: "#ef4444", shadowOpacity: 0.3, shadowRadius: 5 },
+                  })
+                }}
+              >
+                <Text className="text-center font-bold text-white">
+                  Eliminar
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
