@@ -49,7 +49,7 @@ export default function LoginScreen() {
         setIsRegister(false);
       } else {
         await iniciarSesion(email, password);
-        router.replace("/(tabs)/index");
+        router.replace("/");
       }
     } catch (err: any) {
       Toast.show({

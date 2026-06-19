@@ -44,7 +44,7 @@ export default function RootLayout() {
       router.replace("/auth/login");
     } else if (user && inAuthGroup) {
       // Usuario autenticado intentando entrar al login -> A inicio
-      router.replace("/(tabs)/index");
+      router.replace("/");
     }
   }, [user, segments, cargando, rootNavigationState?.key]);
 
